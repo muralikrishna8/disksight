@@ -82,6 +82,11 @@ export default function App() {
     return findNode(result.root, activePath);
   }, [result, activePath]);
 
+  useEffect(() => {
+    if (!folderNode?.lazyUnloaded) return;
+    void expandLazy(folderNode.path);
+  }, [folderNode?.path, folderNode?.lazyUnloaded, expandLazy]);
+
   const childEntries = folderNode?.children ?? [];
 
   const goUp = useCallback(() => {
