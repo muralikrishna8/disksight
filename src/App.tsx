@@ -140,25 +140,34 @@ export default function App() {
     <div className="min-h-full flex flex-col">
       <header className="shrink-0 border-b border-zinc-800 bg-zinc-900/50 px-5 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-100">
-              DiskSight
-            </h1>
-            <div className="mt-2">
-              {result ? (
-                <Breadcrumb
-                  rootPath={rootPath}
-                  currentPath={activePath}
-                  homeLabel={rootLabel}
-                  onNavigate={setCurrentPath}
-                />
-              ) : (
-                <span className="text-sm text-zinc-500">
-                  {loading
-                    ? "Scanning selected folder…"
-                    : "Pick a folder to see sizes and largest files."}
-                </span>
-              )}
+          <div className="flex items-start gap-3 min-w-0">
+            <img
+              src="/app-logo.png"
+              width={40}
+              height={40}
+              alt="DiskSight"
+              className="shrink-0 size-10 rounded-lg object-contain ring-1 ring-zinc-700/60"
+            />
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold tracking-tight text-zinc-100">
+                DiskSight
+              </h1>
+              <div className="mt-2">
+                {result ? (
+                  <Breadcrumb
+                    rootPath={rootPath}
+                    currentPath={activePath}
+                    homeLabel={rootLabel}
+                    onNavigate={setCurrentPath}
+                  />
+                ) : (
+                  <span className="text-sm text-zinc-500">
+                    {loading
+                      ? "Scanning selected folder…"
+                      : "Pick a folder to see sizes and largest files."}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
