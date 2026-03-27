@@ -49,7 +49,23 @@ type TreemapContentProps = TreemapNodeProps & {
   onCellClick: (p: TreemapPayload) => void;
 };
 
-function TreemapContent(props: TreemapContentProps) {
+/** Recharts Treemap passes node fields as top-level props, not as `payload`. */
+function payloadFromContentProps(
+  props: TreemapContentProps & Partial<TreemapPayload>
+): TreemapPayload | null {
+  if (props.payload) return props.payload;
+  const { name, path, isDir, size = 0, fill } = props;
+  if (
+    typeof path !== "string" ||
+    typeof name !== "string" ||
+    typeof isDir !== "boolean"
+  ) {
+    return null;
+  }
+  return { name, path, isDir, size, fill };
+}
+
+function TreemapContent(props: TreemapContentProps & Partial<TreemapPayload>) {
   const {
     x = 0,
     y = 0,
@@ -57,12 +73,11 @@ function TreemapContent(props: TreemapContentProps) {
     height = 0,
     name,
     index = 0,
-    payload,
     onCellClick,
   } = props;
   if (width < 4 || height < 4) return null;
-  const fill = payload?.fill ?? cellFill(index);
-  const p = payload;
+  const p = payloadFromContentProps(props);
+  const fill = p?.fill ?? cellFill(index);
   return (
     <g className="cursor-pointer">
       <rect
@@ -75,7 +90,9 @@ function TreemapContent(props: TreemapContentProps) {
         stroke="#09090b"
         strokeWidth={1}
         rx={2}
-        onClick={() => p && onCellClick(p)}
+        onClick={() => {
+          if (p) onCellClick(p);
+        }}
       />
       {width > 56 && height > 20 ? (
         <text
@@ -116,8 +133,12 @@ function TreemapTooltip({
       <div className="font-semibold text-zinc-100">{item.name}</div>
       <div className="text-zinc-400">{formatBytes(item.size)}</div>
       {item.isDir ? (
-        <div className="text-zinc-500 mt-1">Click to open folder</div>
-      ) : null}
+        item.path ? (
+          <div className="text-zinc-500 mt-1">Click to open folder</div>
+        ) : null
+      ) : (
+        <div className="text-zinc-500 mt-1">Click to open containing folder</div>
+      )}
     </div>
   );
 }
@@ -151,7 +172,16 @@ export function TreemapChart({ entries, onOpenFolder }: TreemapChartProps) {
   }, [entries]);
 
   const onCellClick = (p: TreemapPayload) => {
-    if (p.isDir) onOpenFolder(p.path);
+    if (p.isDir && p.path) {
+      onOpenFolder(p.path);
+      return;
+    }
+    if (!p.isDir && p.path) {
+      const normalized = p.path.replace(/\/+$/, "");
+      const parentPath =
+        normalized.split("/").slice(0, -1).join("/") || "/";
+      onOpenFolder(parentPath);
+    }
   };
 
   if (!entries.filter((e) => e.size > 0).length) {
