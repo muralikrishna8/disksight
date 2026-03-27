@@ -87,7 +87,7 @@ function TreemapContent(props: TreemapContentProps & Partial<TreemapPayload>) {
         height={height}
         fill={fill}
         fillOpacity={0.72}
-        stroke="#09090b"
+        stroke="var(--treemap-cell-stroke)"
         strokeWidth={1}
         rx={2}
         onClick={() => {
@@ -98,7 +98,7 @@ function TreemapContent(props: TreemapContentProps & Partial<TreemapPayload>) {
         <text
           x={x + 6}
           y={y + 16}
-          fill="#fafafa"
+          fill="var(--treemap-label-primary)"
           fontSize={11}
           fontWeight={600}
           className="pointer-events-none"
@@ -110,7 +110,7 @@ function TreemapContent(props: TreemapContentProps & Partial<TreemapPayload>) {
         <text
           x={x + 6}
           y={y + 30}
-          fill="#e4e4e7"
+          fill="var(--treemap-label-secondary)"
           fontSize={10}
           className="pointer-events-none opacity-90"
         >
@@ -129,15 +129,19 @@ function TreemapTooltip({
   const item = payload[0]?.payload as TreemapPayload | undefined;
   if (!item) return null;
   return (
-    <div className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs shadow-xl">
-      <div className="font-semibold text-zinc-100">{item.name}</div>
-      <div className="text-zinc-400">{formatBytes(item.size)}</div>
+    <div className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
+      <div className="font-semibold text-zinc-900 dark:text-zinc-100">
+        {item.name}
+      </div>
+      <div className="text-zinc-600 dark:text-zinc-400">{formatBytes(item.size)}</div>
       {item.isDir ? (
         item.path ? (
-          <div className="text-zinc-500 mt-1">Click to open folder</div>
+          <div className="mt-1 text-zinc-500">Click to open folder</div>
         ) : null
       ) : (
-        <div className="text-zinc-500 mt-1">Click to open containing folder</div>
+        <div className="mt-1 text-zinc-500">
+          Click to open containing folder
+        </div>
       )}
     </div>
   );
@@ -186,20 +190,20 @@ export function TreemapChart({ entries, onOpenFolder }: TreemapChartProps) {
 
   if (!entries.filter((e) => e.size > 0).length) {
     return (
-      <div className="flex h-[min(52vh,560px)] items-center justify-center rounded-lg border border-zinc-800 text-sm text-zinc-500">
+      <div className="flex h-[min(52vh,560px)] items-center justify-center rounded-lg border border-zinc-200 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-500">
         No sized items to chart.
       </div>
     );
   }
 
   return (
-    <div className="h-[min(52vh,560px)] min-h-[280px] rounded-lg border border-zinc-800 bg-zinc-950/50 p-2">
+    <div className="h-[min(52vh,560px)] min-h-[280px] rounded-lg border border-zinc-200 bg-zinc-50/80 p-2 dark:border-zinc-800 dark:bg-zinc-950/50">
       <ResponsiveContainer width="100%" height="100%">
         <Treemap
           data={data}
           dataKey="size"
           nameKey="name"
-          stroke="#09090b"
+          stroke="var(--treemap-chart-stroke)"
           isAnimationActive={false}
           content={<TreemapContent onCellClick={onCellClick} />}
         >

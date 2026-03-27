@@ -36,14 +36,18 @@ export function Breadcrumb({
     crumbs[0] = { ...crumbs[0], label: homeLabel };
   }
   return (
-    <nav className="flex flex-wrap items-center gap-1 text-sm text-zinc-400">
+    <nav className="flex flex-wrap items-center gap-1 text-sm text-zinc-600 dark:text-zinc-400">
       {crumbs.map((c, i) => (
         <span key={c.path} className="flex items-center gap-1">
-          {i > 0 ? <span className="text-zinc-600">/</span> : null}
+          {i > 0 ? (
+            <span className="text-zinc-400 dark:text-zinc-600">/</span>
+          ) : null}
           <button
             type="button"
-            className={`hover:text-emerald-400 transition-colors ${
-              i === crumbs.length - 1 ? "text-zinc-100 font-medium" : ""
+            className={`hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors ${
+              i === crumbs.length - 1
+                ? "text-zinc-900 font-medium dark:text-zinc-100"
+                : ""
             }`}
             onClick={() => onNavigate(c.path)}
           >

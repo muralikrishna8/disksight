@@ -83,7 +83,7 @@ function Row({
 
   return (
     <>
-      <tr className="border-b border-zinc-800/80 hover:bg-zinc-900/80 group">
+      <tr className="border-b border-zinc-200/90 hover:bg-zinc-50 dark:border-zinc-800/80 dark:hover:bg-zinc-900/80 group">
         <td className="py-2 pr-2 align-middle">
           <div
             className="flex items-center gap-1"
@@ -93,7 +93,7 @@ function Row({
               <button
                 type="button"
                 onClick={toggle}
-                className="p-0.5 rounded text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                className="p-0.5 rounded text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
                 aria-expanded={expanded}
               >
                 {expanded ? (
@@ -108,26 +108,28 @@ function Row({
             <button
               type="button"
               onClick={open}
-              className="flex items-center gap-2 min-w-0 text-left hover:text-emerald-400"
+              className="flex items-center gap-2 min-w-0 text-left hover:text-emerald-600 dark:hover:text-emerald-400"
             >
               {entry.isDir ? (
                 <Folder className="h-4 w-4 shrink-0 text-amber-500/90" strokeWidth={1.75} />
               ) : (
                 <File className="h-4 w-4 shrink-0 text-zinc-500" strokeWidth={1.75} />
               )}
-              <span className="truncate font-medium text-zinc-200">{entry.name}</span>
+              <span className="truncate font-medium text-zinc-800 dark:text-zinc-200">
+                {entry.name}
+              </span>
               {entry.lazyUnloaded ? (
-                <span className="text-[10px] uppercase tracking-wide text-zinc-600">
+                <span className="text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-600">
                   lazy
                 </span>
               ) : null}
             </button>
           </div>
         </td>
-        <td className="py-2 px-3 text-right tabular-nums text-zinc-300 whitespace-nowrap">
+        <td className="py-2 px-3 text-right tabular-nums text-zinc-700 whitespace-nowrap dark:text-zinc-300">
           {formatBytes(entry.size)}
         </td>
-        <td className="py-2 px-3 text-right tabular-nums text-zinc-500">
+        <td className="py-2 px-3 text-right tabular-nums text-zinc-600 dark:text-zinc-500">
           {entry.isDir ? entry.itemCount : "—"}
         </td>
         <td className="py-2 pl-3">
@@ -141,7 +143,7 @@ function Row({
                 ev.stopPropagation();
                 onTrash(entry);
               }}
-              className="p-2 rounded-lg text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-red-950/50 hover:text-red-400 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+              className="p-2 rounded-lg text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 dark:hover:bg-red-950/50 dark:hover:text-red-400"
               title="Move to Trash"
               aria-label={`Move ${entry.name} to Trash`}
             >
@@ -166,7 +168,7 @@ function Row({
             />
           ))}
           {hiddenChildCount > 0 ? (
-            <tr className="border-b border-zinc-800/80">
+            <tr className="border-b border-zinc-200/90 dark:border-zinc-800/80">
               <td
                 colSpan={onTrash ? 5 : 4}
                 className="py-2 pr-2"
@@ -177,7 +179,7 @@ function Row({
                   onClick={() =>
                     setVisibleChildCount((n) => n + VISIBLE_CHILDREN_CHUNK)
                   }
-                  className="text-sm text-emerald-500/90 hover:text-emerald-400 font-medium"
+                  className="text-sm font-medium text-emerald-700 hover:text-emerald-600 dark:text-emerald-500/90 dark:hover:text-emerald-400"
                 >
                   Show more ({hiddenChildCount.toLocaleString()} hidden)
                 </button>
@@ -236,8 +238,10 @@ export function TreeTable({
     <button
       type="button"
       onClick={() => toggleSort(k)}
-      className={`inline-flex items-center gap-1 font-medium hover:text-emerald-400 ${
-        sortKey === k ? "text-zinc-100" : "text-zinc-400"
+      className={`inline-flex items-center gap-1 font-medium hover:text-emerald-600 dark:hover:text-emerald-400 ${
+        sortKey === k
+          ? "text-zinc-900 dark:text-zinc-100"
+          : "text-zinc-600 dark:text-zinc-400"
       }`}
     >
       {label}
@@ -247,19 +251,23 @@ export function TreeTable({
 
   if (!sorted.length) {
     return (
-      <p className="text-sm text-zinc-500 py-8 text-center">Nothing in this folder.</p>
+      <p className="text-sm text-zinc-600 dark:text-zinc-500 py-8 text-center">
+        Nothing in this folder.
+      </p>
     );
   }
 
   return (
-    <div className="overflow-auto max-h-[min(52vh,560px)] rounded-lg border border-zinc-800">
+    <div className="overflow-auto max-h-[min(52vh,560px)] rounded-lg border border-zinc-200 dark:border-zinc-800">
       <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-zinc-900/95 backdrop-blur z-10 border-b border-zinc-800">
+        <thead className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/95">
           <tr>
             <th className="text-left py-2 px-2">{headerBtn("name", "Name")}</th>
             <th className="text-right py-2 px-3">{headerBtn("size", "Size")}</th>
-            <th className="text-right py-2 px-3 text-zinc-400 font-medium">Items</th>
-            <th className="text-left py-2 pl-3 text-zinc-400 font-medium w-[140px]">
+            <th className="text-right py-2 px-3 font-medium text-zinc-600 dark:text-zinc-400">
+              Items
+            </th>
+            <th className="text-left py-2 pl-3 font-medium text-zinc-600 w-[140px] dark:text-zinc-400">
               Share
             </th>
             {onTrash ? (
@@ -282,7 +290,7 @@ export function TreeTable({
             />
           ))}
           {hiddenRootCount > 0 ? (
-            <tr className="border-b border-zinc-800/80">
+            <tr className="border-b border-zinc-200/90 dark:border-zinc-800/80">
               <td
                 colSpan={onTrash ? 5 : 4}
                 className="py-2 px-2"
@@ -292,7 +300,7 @@ export function TreeTable({
                   onClick={() =>
                     setVisibleRootCount((n) => n + VISIBLE_CHILDREN_CHUNK)
                   }
-                  className="text-sm text-emerald-500/90 hover:text-emerald-400 font-medium"
+                  className="text-sm font-medium text-emerald-700 hover:text-emerald-600 dark:text-emerald-500/90 dark:hover:text-emerald-400"
                 >
                   Show more ({hiddenRootCount.toLocaleString()} hidden)
                 </button>

@@ -3,7 +3,20 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
+  --treemap-cell-stroke: #e4e4e7;
+  --treemap-label-primary: #18181b;
+  --treemap-label-secondary: #52525b;
+  --treemap-chart-stroke: #e4e4e7;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --treemap-cell-stroke: #09090b;
+    --treemap-label-primary: #fafafa;
+    --treemap-label-secondary: #e4e4e7;
+    --treemap-chart-stroke: #09090b;
+  }
 }
 
 html,
@@ -13,5 +26,5 @@ body,
 }
 
 body {
-  @apply bg-zinc-950 text-zinc-100 antialiased;
+  @apply bg-zinc-50 text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
 }

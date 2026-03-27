@@ -138,7 +138,7 @@ export default function App() {
 
   return (
     <div className="min-h-full flex flex-col">
-      <header className="shrink-0 border-b border-zinc-800 bg-zinc-900/50 px-5 py-4">
+      <header className="shrink-0 border-b border-zinc-200 bg-zinc-100/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-900/50 px-5 py-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3 min-w-0">
             <img
@@ -146,10 +146,10 @@ export default function App() {
               width={40}
               height={40}
               alt="DiskSight"
-              className="shrink-0 size-10 rounded-lg object-contain ring-1 ring-zinc-700/60"
+              className="shrink-0 size-10 rounded-lg object-contain ring-1 ring-zinc-200 dark:ring-zinc-700/60"
             />
             <div className="min-w-0">
-              <h1 className="text-xl font-semibold tracking-tight text-zinc-100">
+              <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
                 DiskSight
               </h1>
               <div className="mt-2">
@@ -161,7 +161,7 @@ export default function App() {
                     onNavigate={setCurrentPath}
                   />
                 ) : (
-                  <span className="text-sm text-zinc-500">
+                  <span className="text-sm text-zinc-600 dark:text-zinc-500">
                     {loading
                       ? "Scanning selected folder…"
                       : "Pick a folder to see sizes and largest files."}
@@ -174,7 +174,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => void pickFolder()}
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 shadow-sm hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-200 dark:shadow-none dark:hover:bg-zinc-800"
             >
               <FolderOpen className="h-4 w-4" />
               Choose folder…
@@ -183,7 +183,7 @@ export default function App() {
               type="button"
               onClick={goScanRoot}
               disabled={!result || activePath === rootPath}
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-40 disabled:pointer-events-none"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-40 disabled:pointer-events-none dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-200 dark:shadow-none dark:hover:bg-zinc-800"
             >
               <Home className="h-4 w-4" />
               Root
@@ -192,7 +192,7 @@ export default function App() {
               type="button"
               onClick={goUp}
               disabled={!result || activePath === rootPath}
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-40 disabled:pointer-events-none"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-40 disabled:pointer-events-none dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-200 dark:shadow-none dark:hover:bg-zinc-800"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
@@ -202,7 +202,7 @@ export default function App() {
               onClick={() => setShowTreemap((v) => !v)}
               disabled={!result}
               aria-pressed={showTreemap}
-              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-40 disabled:pointer-events-none aria-pressed:bg-zinc-800 aria-pressed:border-emerald-600/50"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 shadow-sm hover:bg-zinc-50 disabled:opacity-40 disabled:pointer-events-none aria-pressed:border-emerald-600/50 aria-pressed:bg-emerald-50 dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-200 dark:shadow-none dark:hover:bg-zinc-800 dark:aria-pressed:bg-zinc-800 dark:aria-pressed:border-emerald-600/50"
             >
               <LayoutGrid className="h-4 w-4" />
               {showTreemap ? "Hide treemap" : "Show treemap"}
@@ -211,7 +211,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={cancelScan}
-                className="inline-flex items-center gap-2 rounded-lg border border-zinc-600 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+                className="inline-flex items-center gap-2 rounded-lg border border-zinc-400 bg-white px-3 py-2 text-sm text-zinc-800 shadow-sm hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-200 dark:shadow-none dark:hover:bg-zinc-800"
               >
                 Cancel scan
               </button>
@@ -232,8 +232,8 @@ export default function App() {
           </div>
         </div>
         {loading && progress ? (
-          <div className="mt-3 text-xs text-zinc-500 flex flex-wrap gap-x-4 gap-y-1 items-baseline">
-            <span className="font-medium text-zinc-400 tabular-nums animate-pulse">
+          <div className="mt-3 text-xs text-zinc-600 dark:text-zinc-500 flex flex-wrap gap-x-4 gap-y-1 items-baseline">
+            <span className="font-medium text-zinc-700 tabular-nums animate-pulse dark:text-zinc-400">
               Scanning… {progress.filesCount.toLocaleString()} files ·{" "}
               {formatBytes(progress.bytesAccumulated)}
               {typeof progress.elapsedSecs === "number"
@@ -244,7 +244,7 @@ export default function App() {
           </div>
         ) : null}
         {error ? (
-          <p className="mt-3 text-sm text-red-400" role="alert">
+          <p className="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">
             {error}
           </p>
         ) : null}
@@ -252,7 +252,7 @@ export default function App() {
 
       <main className="flex-1 p-5 flex flex-col gap-5 overflow-auto">
         {loading && !result ? (
-          <div className="flex flex-1 items-center justify-center gap-3 text-zinc-500">
+          <div className="flex flex-1 items-center justify-center gap-3 text-zinc-600 dark:text-zinc-500">
             <Loader2 className="h-6 w-6 animate-spin" />
             <span>Scanning…</span>
           </div>
@@ -260,7 +260,7 @@ export default function App() {
 
         {showIdleEmpty ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center px-4">
-            <p className="text-zinc-400 max-w-md">
+            <p className="text-zinc-600 dark:text-zinc-400 max-w-md">
               No folder is open. Use the system dialog to choose a directory, or
               click below to browse again.
             </p>
@@ -283,7 +283,7 @@ export default function App() {
               }`}
             >
               <div>
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-500 mb-2">
                   Tree
                 </h2>
                 <TreeTable
@@ -304,7 +304,7 @@ export default function App() {
               </div>
               {showTreemap ? (
                 <div>
-                  <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-500 mb-2">
                     Treemap
                   </h2>
                   <TreemapChart
