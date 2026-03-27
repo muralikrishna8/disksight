@@ -48,7 +48,9 @@ export default function App() {
   } = useScanner("", topN);
 
   const [currentPath, setCurrentPath] = useState<string | null>(null);
-  const [confirmTarget, setConfirmTarget] = useState<TopFileEntry | null>(null);
+  const [confirmTrashItems, setConfirmTrashItems] = useState<TopFileEntry[]>(
+    []
+  );
   const [showTreemap, setShowTreemap] = useState(false);
 
   const pickFolder = useCallback(async () => {
@@ -114,15 +116,17 @@ export default function App() {
   }, []);
 
   const onTrashConfirmed = useCallback(async () => {
-    if (!confirmTarget) return;
+    if (!confirmTrashItems.length) return;
     try {
-      await invoke("move_to_trash_cmd", { path: confirmTarget.path });
-      setConfirmTarget(null);
+      for (const item of confirmTrashItems) {
+        await invoke("move_to_trash_cmd", { path: item.path });
+      }
+      setConfirmTrashItems([]);
       void scan();
     } catch (e) {
       console.error(e);
     }
-  }, [confirmTarget, scan]);
+  }, [confirmTrashItems, scan]);
 
   const showMainPanels = !!result;
   const showIdleEmpty = !result && !loading;
@@ -264,11 +268,13 @@ export default function App() {
                   onOpenFolder={onOpenFolder}
                   onExpandLazy={expandLazy}
                   onTrash={(e) =>
-                    setConfirmTarget({
-                      name: e.name,
-                      path: e.path,
-                      size: e.size,
-                    })
+                    setConfirmTrashItems([
+                      {
+                        name: e.name,
+                        path: e.path,
+                        size: e.size,
+                      },
+                    ])
                   }
                 />
                 {!showTreemap ? (
@@ -306,7 +312,7 @@ export default function App() {
             {result.topFiles.length > 0 ? (
               <TopFiles
                 files={result.topFiles}
-                onTrash={(f) => setConfirmTarget(f)}
+                onRequestTrash={setConfirmTrashItems}
                 onReveal={onReveal}
               />
             ) : null}
@@ -315,11 +321,10 @@ export default function App() {
       </main>
 
       <ConfirmDialog
-        open={!!confirmTarget}
+        open={confirmTrashItems.length > 0}
         title="Move to Trash?"
-        itemName={confirmTarget?.name ?? ""}
-        itemSize={confirmTarget?.size ?? 0}
-        onCancel={() => setConfirmTarget(null)}
+        items={confirmTrashItems.map(({ name, size }) => ({ name, size }))}
+        onCancel={() => setConfirmTrashItems([])}
         onConfirm={onTrashConfirmed}
       />
     </div>
