@@ -235,6 +235,13 @@ export default function App() {
                   entries={childEntries}
                   onOpenFolder={onOpenFolder}
                   onExpandLazy={expandLazy}
+                  onTrash={(e) =>
+                    setConfirmTarget({
+                      name: e.name,
+                      path: e.path,
+                      size: e.size,
+                    })
+                  }
                 />
               </div>
               <div>
