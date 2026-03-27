@@ -188,6 +188,16 @@ export default function App() {
               <ArrowLeft className="h-4 w-4" />
               Back
             </button>
+            <button
+              type="button"
+              onClick={() => setShowTreemap((v) => !v)}
+              disabled={!result}
+              aria-pressed={showTreemap}
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-40 disabled:pointer-events-none aria-pressed:bg-zinc-800 aria-pressed:border-emerald-600/50"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              {showTreemap ? "Hide treemap" : "Show treemap"}
+            </button>
             {loading ? (
               <button
                 type="button"
@@ -282,31 +292,12 @@ export default function App() {
                     ])
                   }
                 />
-                {!showTreemap ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowTreemap(true)}
-                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                    Show treemap
-                  </button>
-                ) : null}
               </div>
               {showTreemap ? (
                 <div>
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                      Treemap
-                    </h2>
-                    <button
-                      type="button"
-                      onClick={() => setShowTreemap(false)}
-                      className="shrink-0 text-xs font-medium text-zinc-500 hover:text-zinc-300"
-                    >
-                      Hide
-                    </button>
-                  </div>
+                  <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                    Treemap
+                  </h2>
                   <TreemapChart
                     entries={childEntries}
                     onOpenFolder={onOpenFolder}
