@@ -1,0 +1,10 @@
+[[permission]]
+identifier = "disk-analyser-commands"
+description = "Allow disk scanner and trash/finder commands"
+commands.allow = [
+  "scan_directory_cmd",
+  "get_top_files_cmd",
+  "expand_directory_cmd",
+  "move_to_trash_cmd",
+  "open_in_finder_cmd"
+]
