@@ -1,4 +1,10 @@
-# DiskSight
+<div align="center">
+
+<img src="public/app-logo.png" alt="DiskSight logo" width="120" />
+
+<h1>DiskSight</h1>
+
+</div>
 
 Desktop disk usage analyzer: **[Tauri 2](https://tauri.app/)** desktop shell, **Rust** filesystem scanner, **React** UI (Vite, Tailwind, Recharts).
 
