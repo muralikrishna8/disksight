@@ -1,11 +1,14 @@
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::Instant;
 
+use jwalk::WalkDir;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
-use walkdir::WalkDir;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -13,6 +16,7 @@ pub struct ScanProgress {
     pub files_count: u64,
     pub bytes_accumulated: u64,
     pub current_path: String,
+    pub elapsed_secs: f64,
 }
 
 #[derive(Clone, Serialize)]
@@ -41,6 +45,23 @@ pub struct TopFileEntry {
 pub struct ScanResult {
     pub root: FileEntry,
     pub top_files: Vec<TopFileEntry>,
+}
+
+#[derive(Clone)]
+pub(crate) struct ChildRecord {
+    pub name: String,
+    pub path: PathBuf,
+    pub is_dir: bool,
+    pub file_size: u64,
+}
+
+struct ScanAggregate {
+    dir_bytes: HashMap<PathBuf, u64>,
+    children: HashMap<PathBuf, Vec<ChildRecord>>,
+    heap: BinaryHeap<Reverse<(u64, PathBuf)>>,
+    files_scanned: u64,
+    bytes_total: u64,
+    last_emit: Instant,
 }
 
 pub(crate) fn expand_home(path: &str) -> Result<PathBuf, String> {
@@ -83,82 +104,218 @@ fn is_lazy_dir_name(name: &str) -> bool {
 
 fn should_skip_walk_entry(path: &Path) -> bool {
     let s = path.to_string_lossy();
-    s.contains("/.Trashes")
+    if s.contains("/.Trashes")
         || s.contains("/Library/Application Support/com.apple.TCC")
+        || s.contains("/Library/Caches")
+    {
+        return true;
+    }
+    for c in path.components() {
+        if let Component::Normal(name) = c {
+            let n = name.to_string_lossy();
+            if matches!(
+                n.as_ref(),
+                ".Spotlight-V100"
+                    | ".fseventsd"
+                    | ".DocumentRevisions-V100"
+                    | ".TemporaryItems"
+                    | ".VolumeIcon.icns"
+            ) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+fn root_device_id(root: &Path) -> Option<u64> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        fs::metadata(root).ok().map(|m| m.dev())
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = root;
+        None
+    }
+}
+
+fn propagate_file_size(dir_bytes: &mut HashMap<PathBuf, u64>, root: &Path, path: PathBuf, size: u64) {
+    let mut p = path.parent().map(Path::to_path_buf);
+    while let Some(ref parent) = p {
+        if !parent.starts_with(root) {
+            break;
+        }
+        *dir_bytes.entry(parent.clone()).or_insert(0) += size;
+        p = parent.parent().map(Path::to_path_buf);
+    }
+}
+
+fn record_child(children: &mut HashMap<PathBuf, Vec<ChildRecord>>, parent: &Path, rec: ChildRecord) {
+    children.entry(parent.to_path_buf()).or_default().push(rec);
 }
 
 pub(crate) fn scan_fs(
     root: &Path,
     app: &AppHandle,
     top_n: usize,
-) -> Result<(HashMap<PathBuf, u64>, Vec<TopFileEntry>), String> {
+    cancel: Option<&AtomicBool>,
+) -> Result<(HashMap<PathBuf, u64>, HashMap<PathBuf, Vec<ChildRecord>>, Vec<TopFileEntry>), String> {
     let root = root
         .canonicalize()
         .map_err(|e| format!("Invalid path: {e}"))?;
 
-    let mut dir_bytes: HashMap<PathBuf, u64> = HashMap::new();
-    let mut heap: BinaryHeap<Reverse<(u64, PathBuf)>> = BinaryHeap::new();
-    let mut files_scanned: u64 = 0;
-    let mut bytes_total: u64 = 0;
-    let mut last_emit = std::time::Instant::now();
+    let root_dev = root_device_id(&root);
+    let scan_start = Instant::now();
+    let shared = Arc::new(Mutex::new(ScanAggregate {
+        dir_bytes: HashMap::new(),
+        children: HashMap::new(),
+        heap: BinaryHeap::new(),
+        files_scanned: 0,
+        bytes_total: 0,
+        last_emit: Instant::now(),
+    }));
 
     let walker = WalkDir::new(&root)
+        .skip_hidden(false)
         .follow_links(false)
-        .same_file_system(false)
-        .into_iter()
-        .filter_entry(|e| {
-            let p = e.path();
-            p.starts_with(&root) && !should_skip_walk_entry(p)
+        .sort(false)
+        .process_read_dir(move |_depth, _dir_path, _state, children| {
+            children.retain(|e| match e {
+                Ok(ent) => !should_skip_walk_entry(&ent.path()),
+                Err(_) => true,
+            });
+            if let Some(rd) = root_dev {
+                for ent in children.iter_mut().filter_map(|e| e.as_mut().ok()) {
+                    if ent.file_type().is_dir() {
+                        if let Ok(m) = ent.metadata() {
+                            #[cfg(unix)]
+                            {
+                                use std::os::unix::fs::MetadataExt;
+                                if m.dev() != rd {
+                                    ent.read_children_path = None;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         });
 
-    for entry in walker {
-        let entry = match entry {
+    for walk_item in walker {
+        if cancel.is_some_and(|f| f.load(Ordering::Relaxed)) {
+            return Err("Scan cancelled".into());
+        }
+
+        let entry = match walk_item {
             Ok(e) => e,
             Err(_) => continue,
         };
-        let path = entry.path().to_path_buf();
+
+        let path = entry.path();
+        if path == root {
+            continue;
+        }
+
+        let Some(parent) = path.parent().map(Path::to_path_buf) else {
+            continue;
+        };
+        if !parent.starts_with(&root) {
+            continue;
+        }
+
+        let name = entry
+            .file_name()
+            .to_string_lossy()
+            .into_owned();
+
+        if entry.file_type().is_symlink() {
+            continue;
+        }
+
         if entry.file_type().is_file() {
             let size = match entry.metadata() {
                 Ok(m) => m.len(),
                 Err(_) => continue,
             };
-            files_scanned += 1;
-            bytes_total += size;
 
-            if last_emit.elapsed().as_millis() > 120 {
-                last_emit = std::time::Instant::now();
+            let mut ag = shared.lock().map_err(|_| "Scan lock poisoned".to_string())?;
+            ag.files_scanned += 1;
+            ag.bytes_total += size;
+            if ag.last_emit.elapsed().as_millis() > 120 {
+                ag.last_emit = Instant::now();
+                let elapsed = scan_start.elapsed().as_secs_f64();
                 let _ = app.emit(
                     "scan-progress",
                     ScanProgress {
-                        files_count: files_scanned,
-                        bytes_accumulated: bytes_total,
+                        files_count: ag.files_scanned,
+                        bytes_accumulated: ag.bytes_total,
                         current_path: path.display().to_string(),
+                        elapsed_secs: elapsed,
                     },
                 );
             }
 
-            let mut p = path.parent().map(Path::to_path_buf);
-            while let Some(ref parent) = p {
-                if !parent.starts_with(&root) {
-                    break;
-                }
-                *dir_bytes.entry(parent.clone()).or_insert(0) += size;
-                p = parent.parent().map(Path::to_path_buf);
-            }
+            propagate_file_size(&mut ag.dir_bytes, &root, path.clone(), size);
 
             if top_n > 0 {
-                if heap.len() < top_n {
-                    heap.push(Reverse((size, path.clone())));
-                } else if let Some(&Reverse((min_size, _))) = heap.peek() {
+                if ag.heap.len() < top_n {
+                    ag.heap.push(Reverse((size, path.clone())));
+                } else if let Some(&Reverse((min_size, _))) = ag.heap.peek() {
                     if size > min_size {
-                        heap.pop();
-                        heap.push(Reverse((size, path.clone())));
+                        ag.heap.pop();
+                        ag.heap.push(Reverse((size, path.clone())));
                     }
                 }
             }
-        } else if entry.file_type().is_symlink() {
-            continue;
+
+            if ag.files_scanned % 1000 == 0 && cancel.is_some_and(|f| f.load(Ordering::Relaxed)) {
+                return Err("Scan cancelled".into());
+            }
+
+            record_child(
+                &mut ag.children,
+                &parent,
+                ChildRecord {
+                    name,
+                    path: path.clone(),
+                    is_dir: false,
+                    file_size: size,
+                },
+            );
+        } else if entry.file_type().is_dir() {
+            let mut ag = shared.lock().map_err(|_| "Scan lock poisoned".to_string())?;
+            record_child(
+                &mut ag.children,
+                &parent,
+                ChildRecord {
+                    name,
+                    path: path.clone(),
+                    is_dir: true,
+                    file_size: 0,
+                },
+            );
         }
+    }
+
+    let ag = Arc::try_unwrap(shared)
+        .map_err(|_| "Scan still in use".to_string())?
+        .into_inner()
+        .map_err(|_| "Scan lock poisoned".to_string())?;
+
+    let ScanAggregate {
+        dir_bytes,
+        mut children,
+        heap,
+        files_scanned,
+        bytes_total,
+        ..
+    } = ag;
+
+    // Deterministic child order (jwalk yields depth-first; parallel map order varies).
+    for list in children.values_mut() {
+        list.sort_by(|a, b| a.name.cmp(&b.name));
     }
 
     let mut top_files: Vec<TopFileEntry> = heap
@@ -175,26 +332,27 @@ pub(crate) fn scan_fs(
         .collect();
     top_files.sort_by(|a, b| b.size.cmp(&a.size));
 
+    let elapsed = scan_start.elapsed().as_secs_f64();
     let _ = app.emit(
         "scan-progress",
         ScanProgress {
             files_count: files_scanned,
             bytes_accumulated: bytes_total,
             current_path: root.display().to_string(),
+            elapsed_secs: elapsed,
         },
     );
 
-    Ok((dir_bytes, top_files))
+    Ok((dir_bytes, children, top_files))
 }
 
-fn count_direct_children(path: &Path) -> u32 {
-    let Ok(rd) = fs::read_dir(path) else {
-        return 0;
-    };
-    rd.filter_map(|e| e.ok()).count() as u32
-}
-
-pub(crate) fn build_tree(path: &Path, dir_bytes: &HashMap<PathBuf, u64>) -> Result<FileEntry, String> {
+pub(crate) fn build_tree(
+    path: &Path,
+    dir_bytes: &HashMap<PathBuf, u64>,
+    children_of: &HashMap<PathBuf, Vec<ChildRecord>>,
+    current_depth: u32,
+    max_depth: u32,
+) -> Result<FileEntry, String> {
     let path = path
         .canonicalize()
         .map_err(|e| format!("Invalid path: {e}"))?;
@@ -220,42 +378,21 @@ pub(crate) fn build_tree(path: &Path, dir_bytes: &HashMap<PathBuf, u64>) -> Resu
     }
 
     let size = *dir_bytes.get(&path).unwrap_or(&0);
-    let direct_count = count_direct_children(&path);
+    let records = children_of.get(&path).cloned().unwrap_or_default();
+    let direct_count = records.len() as u32;
 
     let mut child_entries: Vec<FileEntry> = Vec::new();
-    let mut read_dir: Vec<PathBuf> = fs::read_dir(&path)
-        .map_err(|e| e.to_string())?
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .collect();
-    read_dir.sort_by(|a, b| {
-        let an = a.file_name().unwrap_or_default();
-        let bn = b.file_name().unwrap_or_default();
-        an.cmp(bn)
-    });
-
-    for child_path in read_dir {
-        let child_name = child_path
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_default();
-
-        let cmeta = match fs::symlink_metadata(&child_path) {
-            Ok(m) => m,
-            Err(_) => continue,
-        };
-
-        if cmeta.is_symlink() {
-            continue;
-        }
-
-        if cmeta.is_dir() {
-            if is_lazy_dir_name(&child_name) {
-                let lazy_size = *dir_bytes.get(&child_path).unwrap_or(&0);
-                let items = count_direct_children(&child_path);
+    for rec in records {
+        if rec.is_dir {
+            if is_lazy_dir_name(&rec.name) || current_depth + 1 >= max_depth {
+                let lazy_size = *dir_bytes.get(&rec.path).unwrap_or(&0);
+                let items = children_of
+                    .get(&rec.path)
+                    .map(|v| v.len() as u32)
+                    .unwrap_or(0);
                 child_entries.push(FileEntry {
-                    name: child_name,
-                    path: child_path.display().to_string(),
+                    name: rec.name,
+                    path: rec.path.display().to_string(),
                     size: lazy_size,
                     is_dir: true,
                     children: None,
@@ -263,14 +400,19 @@ pub(crate) fn build_tree(path: &Path, dir_bytes: &HashMap<PathBuf, u64>) -> Resu
                     lazy_unloaded: true,
                 });
             } else {
-                child_entries.push(build_tree(&child_path, dir_bytes)?);
+                child_entries.push(build_tree(
+                    &rec.path,
+                    dir_bytes,
+                    children_of,
+                    current_depth + 1,
+                    max_depth,
+                )?);
             }
         } else {
-            let sz = cmeta.len();
             child_entries.push(FileEntry {
-                name: child_name,
-                path: child_path.display().to_string(),
-                size: sz,
+                name: rec.name,
+                path: rec.path.display().to_string(),
+                size: rec.file_size,
                 is_dir: false,
                 children: None,
                 item_count: 0,
@@ -290,20 +432,29 @@ pub(crate) fn build_tree(path: &Path, dir_bytes: &HashMap<PathBuf, u64>) -> Resu
     })
 }
 
-pub fn scan_directory(path_str: &str, app: &AppHandle, top_n: usize) -> Result<ScanResult, String> {
+pub fn scan_directory(
+    path_str: &str,
+    app: &AppHandle,
+    top_n: usize,
+    cancel: Option<&AtomicBool>,
+) -> Result<ScanResult, String> {
     let path = expand_home(path_str)?;
     if !path.exists() {
         return Err("Path does not exist".into());
     }
-    let (dir_bytes, top_files) = scan_fs(&path, app, top_n)?;
-    let root = build_tree(&path, &dir_bytes)?;
+    let (dir_bytes, children_of, top_files) = scan_fs(&path, app, top_n, cancel)?;
+    let root = build_tree(&path, &dir_bytes, &children_of, 0, 1)?;
     Ok(ScanResult { root, top_files })
 }
 
-pub fn expand_lazy_directory(path_str: &str, app: &AppHandle) -> Result<FileEntry, String> {
+pub fn expand_lazy_directory(
+    path_str: &str,
+    app: &AppHandle,
+    cancel: Option<&AtomicBool>,
+) -> Result<FileEntry, String> {
     let path = expand_home(path_str)?;
-    let (dir_bytes, _) = scan_fs(&path, app, 0)?;
-    let mut entry = build_tree(&path, &dir_bytes)?;
+    let (dir_bytes, children_of, _) = scan_fs(&path, app, 0, cancel)?;
+    let mut entry = build_tree(&path, &dir_bytes, &children_of, 0, 1)?;
     entry.lazy_unloaded = false;
     Ok(entry)
 }

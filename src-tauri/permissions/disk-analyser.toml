@@ -3,6 +3,7 @@ identifier = "disk-analyser-commands"
 description = "Allow disk scanner and trash/finder commands"
 commands.allow = [
   "scan_directory_cmd",
+  "cancel_scan_cmd",
   "get_top_files_cmd",
   "expand_directory_cmd",
   "move_to_trash_cmd",

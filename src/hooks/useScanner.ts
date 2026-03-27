@@ -27,6 +27,7 @@ export type ScanProgress = {
   filesCount: number;
   bytesAccumulated: number;
   currentPath: string;
+  elapsedSecs: number;
 };
 
 export function useScanner(initialPath = "", topCount = 20) {
@@ -108,6 +109,10 @@ export function useScanner(initialPath = "", topCount = 20) {
     [mergeExpanded]
   );
 
+  const cancelScan = useCallback(() => {
+    void invoke("cancel_scan_cmd");
+  }, []);
+
   return {
     scanPath,
     setScanPath,
@@ -118,5 +123,6 @@ export function useScanner(initialPath = "", topCount = 20) {
     scan,
     expandLazy,
     mergeExpanded,
+    cancelScan,
   };
 }

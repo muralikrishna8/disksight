@@ -1,6 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { ArrowLeft, FolderOpen, Home, Loader2, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  FolderOpen,
+  Home,
+  LayoutGrid,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Breadcrumb } from "./components/Breadcrumb";
@@ -36,11 +43,13 @@ export default function App() {
     progress,
     scan,
     expandLazy,
+    cancelScan,
     scanPath,
   } = useScanner("", topN);
 
   const [currentPath, setCurrentPath] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<TopFileEntry | null>(null);
+  const [showTreemap, setShowTreemap] = useState(false);
 
   const pickFolder = useCallback(async () => {
     const selected = await open({
@@ -170,6 +179,15 @@ export default function App() {
               <ArrowLeft className="h-4 w-4" />
               Back
             </button>
+            {loading ? (
+              <button
+                type="button"
+                onClick={cancelScan}
+                className="inline-flex items-center gap-2 rounded-lg border border-zinc-600 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+              >
+                Cancel scan
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={onRescan}
@@ -186,9 +204,14 @@ export default function App() {
           </div>
         </div>
         {loading && progress ? (
-          <div className="mt-3 text-xs text-zinc-500 flex flex-wrap gap-x-4 gap-y-1">
-            <span>{progress.filesCount.toLocaleString()} files tallied</span>
-            <span>{formatBytes(progress.bytesAccumulated)}</span>
+          <div className="mt-3 text-xs text-zinc-500 flex flex-wrap gap-x-4 gap-y-1 items-baseline">
+            <span className="font-medium text-zinc-400 tabular-nums animate-pulse">
+              Scanning… {progress.filesCount.toLocaleString()} files ·{" "}
+              {formatBytes(progress.bytesAccumulated)}
+              {typeof progress.elapsedSecs === "number"
+                ? ` · ${progress.elapsedSecs.toFixed(1)}s`
+                : null}
+            </span>
             <span className="truncate max-w-full">{progress.currentPath}</span>
           </div>
         ) : null}
@@ -226,12 +249,17 @@ export default function App() {
 
         {showMainPanels ? (
           <>
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+            <div
+              className={`grid gap-5 items-start ${
+                showTreemap ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1"
+              }`}
+            >
               <div>
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
                   Tree
                 </h2>
                 <TreeTable
+                  key={activePath}
                   entries={childEntries}
                   onOpenFolder={onOpenFolder}
                   onExpandLazy={expandLazy}
@@ -243,13 +271,37 @@ export default function App() {
                     })
                   }
                 />
+                {!showTreemap ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowTreemap(true)}
+                    className="mt-3 inline-flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/50 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    Show treemap
+                  </button>
+                ) : null}
               </div>
-              <div>
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                  Treemap
-                </h2>
-                <TreemapChart entries={childEntries} onOpenFolder={onOpenFolder} />
-              </div>
+              {showTreemap ? (
+                <div>
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                      Treemap
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => setShowTreemap(false)}
+                      className="shrink-0 text-xs font-medium text-zinc-500 hover:text-zinc-300"
+                    >
+                      Hide
+                    </button>
+                  </div>
+                  <TreemapChart
+                    entries={childEntries}
+                    onOpenFolder={onOpenFolder}
+                  />
+                </div>
+              ) : null}
             </div>
             {result.topFiles.length > 0 ? (
               <TopFiles

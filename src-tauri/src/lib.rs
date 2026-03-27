@@ -5,8 +5,10 @@ mod scanner;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .manage(commands::ScanCancel::new())
         .invoke_handler(tauri::generate_handler![
             commands::scan_directory_cmd,
+            commands::cancel_scan_cmd,
             commands::get_top_files_cmd,
             commands::expand_directory_cmd,
             commands::move_to_trash_cmd,

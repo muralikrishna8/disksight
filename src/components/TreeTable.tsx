@@ -5,11 +5,13 @@ import {
   Folder,
   Trash2,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { FileEntry } from "../hooks/useScanner";
 import { formatBytes } from "../utils/format";
 import { SizeBar } from "./SizeBar";
+
+const VISIBLE_CHILDREN_CHUNK = 500;
 
 type SortKey = "name" | "size";
 
@@ -55,6 +57,17 @@ function Row({
     });
     return copy;
   }, [entry.children, sortKey, sortDir]);
+
+  const [visibleChildCount, setVisibleChildCount] = useState(VISIBLE_CHILDREN_CHUNK);
+  useEffect(() => {
+    setVisibleChildCount(VISIBLE_CHILDREN_CHUNK);
+  }, [sortedKids.length, entry.path, sortKey, sortDir]);
+
+  const visibleKids =
+    sortedKids.length > visibleChildCount
+      ? sortedKids.slice(0, visibleChildCount)
+      : sortedKids;
+  const hiddenChildCount = sortedKids.length - visibleKids.length;
 
   const toggle = () => {
     if (!entry.isDir) return;
@@ -137,8 +150,9 @@ function Row({
           </td>
         ) : null}
       </tr>
-      {expanded && hasVisualChildren
-        ? sortedKids.map((c) => (
+      {expanded && hasVisualChildren ? (
+        <>
+          {visibleKids.map((c) => (
             <Row
               key={c.path}
               entry={c}
@@ -150,8 +164,28 @@ function Row({
               onExpandLazy={onExpandLazy}
               onTrash={onTrash}
             />
-          ))
-        : null}
+          ))}
+          {hiddenChildCount > 0 ? (
+            <tr className="border-b border-zinc-800/80">
+              <td
+                colSpan={onTrash ? 5 : 4}
+                className="py-2 pr-2"
+                style={{ paddingLeft: (depth + 1) * 16 + 24 }}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setVisibleChildCount((n) => n + VISIBLE_CHILDREN_CHUNK)
+                  }
+                  className="text-sm text-emerald-500/90 hover:text-emerald-400 font-medium"
+                >
+                  Show more ({hiddenChildCount.toLocaleString()} hidden)
+                </button>
+              </td>
+            </tr>
+          ) : null}
+        </>
+      ) : null}
     </>
   );
 }
@@ -180,6 +214,15 @@ export function TreeTable({
     () => sorted.reduce((m, e) => Math.max(m, e.size), 0),
     [sorted]
   );
+
+  const [visibleRootCount, setVisibleRootCount] = useState(VISIBLE_CHILDREN_CHUNK);
+  useEffect(() => {
+    setVisibleRootCount(VISIBLE_CHILDREN_CHUNK);
+  }, [sorted.length, sortKey, sortDir]);
+
+  const visibleRoot =
+    sorted.length > visibleRootCount ? sorted.slice(0, visibleRootCount) : sorted;
+  const hiddenRootCount = sorted.length - visibleRoot.length;
 
   const toggleSort = (k: SortKey) => {
     if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -225,7 +268,7 @@ export function TreeTable({
           </tr>
         </thead>
         <tbody>
-          {sorted.map((e) => (
+          {visibleRoot.map((e) => (
             <Row
               key={e.path}
               entry={e}
@@ -238,6 +281,24 @@ export function TreeTable({
               onTrash={onTrash}
             />
           ))}
+          {hiddenRootCount > 0 ? (
+            <tr className="border-b border-zinc-800/80">
+              <td
+                colSpan={onTrash ? 5 : 4}
+                className="py-2 px-2"
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setVisibleRootCount((n) => n + VISIBLE_CHILDREN_CHUNK)
+                  }
+                  className="text-sm text-emerald-500/90 hover:text-emerald-400 font-medium"
+                >
+                  Show more ({hiddenRootCount.toLocaleString()} hidden)
+                </button>
+              </td>
+            </tr>
+          ) : null}
         </tbody>
       </table>
     </div>
