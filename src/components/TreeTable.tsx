@@ -1,10 +1,4 @@
-import {
-  ChevronDown,
-  ChevronRight,
-  File,
-  Folder,
-  Trash2,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, File, Folder, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import type { FileEntry } from "../hooks/useScanner";
@@ -52,13 +46,17 @@ function Row({
     copy.sort((a, b) => {
       let cmp = 0;
       if (sortKey === "name") cmp = a.name.localeCompare(b.name);
-      else cmp = a.size === b.size ? a.name.localeCompare(b.name) : a.size - b.size;
+      else
+        cmp =
+          a.size === b.size ? a.name.localeCompare(b.name) : a.size - b.size;
       return sortDir === "asc" ? cmp : -cmp;
     });
     return copy;
   }, [entry.children, sortKey, sortDir]);
 
-  const [visibleChildCount, setVisibleChildCount] = useState(VISIBLE_CHILDREN_CHUNK);
+  const [visibleChildCount, setVisibleChildCount] = useState(
+    VISIBLE_CHILDREN_CHUNK,
+  );
   useEffect(() => {
     setVisibleChildCount(VISIBLE_CHILDREN_CHUNK);
   }, [sortedKids.length, entry.path, sortKey, sortDir]);
@@ -111,9 +109,15 @@ function Row({
               className="flex items-center gap-2 min-w-0 text-left hover:text-emerald-600 dark:hover:text-emerald-400"
             >
               {entry.isDir ? (
-                <Folder className="h-4 w-4 shrink-0 text-amber-500/90" strokeWidth={1.75} />
+                <Folder
+                  className="h-4 w-4 shrink-0 text-amber-500/90"
+                  strokeWidth={1.75}
+                />
               ) : (
-                <File className="h-4 w-4 shrink-0 text-zinc-500" strokeWidth={1.75} />
+                <File
+                  className="h-4 w-4 shrink-0 text-zinc-500"
+                  strokeWidth={1.75}
+                />
               )}
               <span className="truncate font-medium text-zinc-800 dark:text-zinc-200">
                 {entry.name}
@@ -206,7 +210,9 @@ export function TreeTable({
     copy.sort((a, b) => {
       let cmp = 0;
       if (sortKey === "name") cmp = a.name.localeCompare(b.name);
-      else cmp = a.size === b.size ? a.name.localeCompare(b.name) : a.size - b.size;
+      else
+        cmp =
+          a.size === b.size ? a.name.localeCompare(b.name) : a.size - b.size;
       return sortDir === "asc" ? cmp : -cmp;
     });
     return copy;
@@ -214,16 +220,20 @@ export function TreeTable({
 
   const maxSize = useMemo(
     () => sorted.reduce((m, e) => Math.max(m, e.size), 0),
-    [sorted]
+    [sorted],
   );
 
-  const [visibleRootCount, setVisibleRootCount] = useState(VISIBLE_CHILDREN_CHUNK);
+  const [visibleRootCount, setVisibleRootCount] = useState(
+    VISIBLE_CHILDREN_CHUNK,
+  );
   useEffect(() => {
     setVisibleRootCount(VISIBLE_CHILDREN_CHUNK);
   }, [sorted.length, sortKey, sortDir]);
 
   const visibleRoot =
-    sorted.length > visibleRootCount ? sorted.slice(0, visibleRootCount) : sorted;
+    sorted.length > visibleRootCount
+      ? sorted.slice(0, visibleRootCount)
+      : sorted;
   const hiddenRootCount = sorted.length - visibleRoot.length;
 
   const toggleSort = (k: SortKey) => {
@@ -263,7 +273,9 @@ export function TreeTable({
         <thead className="sticky top-0 z-10 border-b border-zinc-200 bg-white/95 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/95">
           <tr>
             <th className="text-left py-2 px-2">{headerBtn("name", "Name")}</th>
-            <th className="text-right py-2 px-3">{headerBtn("size", "Size")}</th>
+            <th className="text-right py-2 px-3">
+              {headerBtn("size", "Size")}
+            </th>
             <th className="text-right py-2 px-3 font-medium text-zinc-600 dark:text-zinc-400">
               Items
             </th>
@@ -291,10 +303,7 @@ export function TreeTable({
           ))}
           {hiddenRootCount > 0 ? (
             <tr className="border-b border-zinc-200/90 dark:border-zinc-800/80">
-              <td
-                colSpan={onTrash ? 5 : 4}
-                className="py-2 px-2"
-              >
+              <td colSpan={onTrash ? 5 : 4} className="py-2 px-2">
                 <button
                   type="button"
                   onClick={() =>

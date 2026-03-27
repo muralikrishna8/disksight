@@ -23,8 +23,7 @@ function describeTrashItems(items: TrashItem[]): ReactNode {
         <span className="break-all font-medium text-zinc-900 dark:text-zinc-200">
           {name}
         </span>{" "}
-        (
-        {formatBytes(size)}) to Trash? You can restore it from Finder.
+        ({formatBytes(size)}) to Trash? You can restore it from Finder.
       </>
     );
   }
@@ -37,7 +36,8 @@ function describeTrashItems(items: TrashItem[]): ReactNode {
       <span className="font-medium tabular-nums text-zinc-900 dark:text-zinc-200">
         {items.length}
       </span>{" "}
-      files ({formatBytes(total)} total) to Trash? You can restore them from Finder.
+      files ({formatBytes(total)} total) to Trash? You can restore them from
+      Finder.
       <ul className="mt-3 max-h-32 space-y-1 overflow-auto rounded-lg border border-zinc-200 bg-zinc-50 py-1.5 px-3 text-xs text-zinc-600 dark:border-zinc-800/80 dark:bg-zinc-950/50 dark:text-zinc-500">
         {preview.map((i, idx) => (
           <li key={`${i.name}-${idx}`} className="truncate" title={i.name}>

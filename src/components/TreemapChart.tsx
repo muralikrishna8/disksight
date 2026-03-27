@@ -51,7 +51,7 @@ type TreemapContentProps = TreemapNodeProps & {
 
 /** Recharts Treemap passes node fields as top-level props, not as `payload`. */
 function payloadFromContentProps(
-  props: TreemapContentProps & Partial<TreemapPayload>
+  props: TreemapContentProps & Partial<TreemapPayload>,
 ): TreemapPayload | null {
   if (props.payload) return props.payload;
   const { name, path, isDir, size = 0, fill } = props;
@@ -121,10 +121,7 @@ function TreemapContent(props: TreemapContentProps & Partial<TreemapPayload>) {
   );
 }
 
-function TreemapTooltip({
-  active,
-  payload,
-}: TooltipProps<number, string>) {
+function TreemapTooltip({ active, payload }: TooltipProps<number, string>) {
   if (!active || !payload?.length) return null;
   const item = payload[0]?.payload as TreemapPayload | undefined;
   if (!item) return null;
@@ -133,7 +130,9 @@ function TreemapTooltip({
       <div className="font-semibold text-zinc-900 dark:text-zinc-100">
         {item.name}
       </div>
-      <div className="text-zinc-600 dark:text-zinc-400">{formatBytes(item.size)}</div>
+      <div className="text-zinc-600 dark:text-zinc-400">
+        {formatBytes(item.size)}
+      </div>
       {item.isDir ? (
         item.path ? (
           <div className="mt-1 text-zinc-500">Click to open folder</div>
@@ -182,8 +181,7 @@ export function TreemapChart({ entries, onOpenFolder }: TreemapChartProps) {
     }
     if (!p.isDir && p.path) {
       const normalized = p.path.replace(/\/+$/, "");
-      const parentPath =
-        normalized.split("/").slice(0, -1).join("/") || "/";
+      const parentPath = normalized.split("/").slice(0, -1).join("/") || "/";
       onOpenFolder(parentPath);
     }
   };

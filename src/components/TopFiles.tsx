@@ -47,7 +47,8 @@ export function TopFiles({ files, onRequestTrash, onReveal }: TopFilesProps) {
             Largest files
           </h2>
           <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-500">
-            From the last full scan of the selected root — select rows to delete several at once
+            From the last full scan of the selected root — select rows to delete
+            several at once
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">

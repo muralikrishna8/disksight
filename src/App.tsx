@@ -49,7 +49,7 @@ export default function App() {
 
   const [currentPath, setCurrentPath] = useState<string | null>(null);
   const [confirmTrashItems, setConfirmTrashItems] = useState<TopFileEntry[]>(
-    []
+    [],
   );
   const [showTreemap, setShowTreemap] = useState(false);
 
@@ -244,7 +244,10 @@ export default function App() {
           </div>
         ) : null}
         {error ? (
-          <p className="mt-3 text-sm text-red-600 dark:text-red-400" role="alert">
+          <p
+            className="mt-3 text-sm text-red-600 dark:text-red-400"
+            role="alert"
+          >
             {error}
           </p>
         ) : null}

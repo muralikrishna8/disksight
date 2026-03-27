@@ -75,27 +75,28 @@ export function useScanner(initialPath = "", topCount = 20) {
         setProgress(null);
       }
     },
-    [scanPath, topCount]
+    [scanPath, topCount],
   );
 
-  const mergeExpanded = useCallback((targetPath: string, expanded: FileEntry) => {
-    const patch = (node: FileEntry): FileEntry => {
-      if (node.path === targetPath) {
+  const mergeExpanded = useCallback(
+    (targetPath: string, expanded: FileEntry) => {
+      const patch = (node: FileEntry): FileEntry => {
+        if (node.path === targetPath) {
+          return {
+            ...expanded,
+            lazyUnloaded: false,
+          };
+        }
+        if (!node.children?.length) return node;
         return {
-          ...expanded,
-          lazyUnloaded: false,
+          ...node,
+          children: node.children.map((c) => patch(c)),
         };
-      }
-      if (!node.children?.length) return node;
-      return {
-        ...node,
-        children: node.children.map((c) => patch(c)),
       };
-    };
-    setResult((prev) =>
-      prev ? { ...prev, root: patch(prev.root) } : prev
-    );
-  }, []);
+      setResult((prev) => (prev ? { ...prev, root: patch(prev.root) } : prev));
+    },
+    [],
+  );
 
   const expandLazy = useCallback(
     async (path: string) => {
@@ -106,7 +107,7 @@ export function useScanner(initialPath = "", topCount = 20) {
         setError(e instanceof Error ? e.message : String(e));
       }
     },
-    [mergeExpanded]
+    [mergeExpanded],
   );
 
   const cancelScan = useCallback(() => {
