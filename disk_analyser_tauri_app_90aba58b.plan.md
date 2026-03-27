@@ -135,7 +135,7 @@ Scanning will be async and emit progress events to the frontend via Tauri events
 ## Project Structure
 
 ```
-file-analyser/
+disksight/
 ├── src-tauri/
 │   ├── Cargo.toml          # Rust deps: tauri, walkdir, trash, serde
 │   ├── src/
