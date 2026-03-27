@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default permissions for Disk Analyser","local":true,"windows":["main"],"permissions":["core:default","core:event:default","dialog:default","disk-analyser-commands"]}}
+{"default":{"identifier":"default","description":"Default permissions for DiskSight","local":true,"windows":["main"],"permissions":["core:default","core:event:default","dialog:default","disk-analyser-commands"]}}
